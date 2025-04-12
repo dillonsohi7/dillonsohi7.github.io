@@ -1,12 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Station</title>
+  <meta charset="UTF-8">
+  <title>CSV from ThingsBoard</title>
 </head>
 <body>
-    <h1>CS410 Weather Station</h1>
-    <p>This is a test website</p>
+  <h1>CSV Viewer</h1>
+  <pre id="output">Loading...</pre>
+
+  <!-- Load PapaParse for CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    // Authenticate ThingsBoard
+    fetch('https://<your-thingsboard-url>/api/auth/login', {//<-----------------INSERT
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: 'your_username',//<----------------INSERT
+        password: 'your_password'//<-----------------INSERT
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      const token = data.token;
+      console.log('Logged in!');
+      getCsvAttribute(token); 
+    });
+
+    // get CSV from shared attribute
+    function getCsvAttribute(token) {
+      const entityType = 'ASSET'; // or 'DEVICE'
+      const entityId = 'your_entity_id'; // UUID from ThingsBoard<------------------INSERT
+      const key = 'csvFile'; // key name of the attribute holding CSV text<---------INSERT
+
+      const url = `https://<your-thingsboard-url>/api/plugins/telemetry/${entityType}/${entityId}/values/attributes/SHARED_SCOPE`;//<-----INSERT
+
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Authorization': `Bearer ${token}`
+        }
+      })
+      .then(res => res.json())
+      .then(data => {
+        const csvContent = data[key];
+        processCSV(csvContent); 
+      });
+    }
+
+    // Parse and display CSV
+    function processCSV(csvText) {
+      const result = Papa.parse(csvText, {
+        header: true,
+        skipEmptyLines: true
+      });
+
+      console.log('Parsed CSV:', result.data);
+      document.getElementById('output').textContent = JSON.stringify(result.data, null, 2);
+    }
+  </script>
 </body>
 </html>
