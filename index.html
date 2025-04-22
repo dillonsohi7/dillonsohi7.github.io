@@ -1,0 +1,52 @@
+<!-- HTML -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weather Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="wrapper">
+  <header>
+    <h1>🌤️ Weather Station</h1>
+    <p>Live temperature and humidity readings</p>
+  </header>
+
+  <main class="card">
+    <div class="data-item">
+      <h2>🌡️ Temperature</h2>
+      <p><span id="tempC">--</span> °C / <span id="tempF">--</span> °F</p>
+    </div>
+    <div class="data-item">
+      <h2>💧 Humidity</h2>
+      <p><span id="humidity">--</span>%</p>
+    </div>
+    <div class="data-item">
+      <h2>🕒 Last Update</h2>
+      <p><span id="timestamp">--</span></p>
+    </div>
+    <button id="refreshBtn" onclick="refreshData()">
+      🔁 Refresh
+      <span id="spinner" class="hidden">⏳</span>
+    </button>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Dennis Wong • <a href="https://github.com/Gro0mp" target="_blank">GitHub</a></p>
+  </footer>
+</div>
+
+<!-- Live Dashboard moved outside of wrapper -->
+<div class="dashboard-section">
+  <h2>📊 Live Dashboard</h2>
+  <iframe
+          src="https://thingsboard.cloud/dashboard/87fdc380-168d-11f0-86ac-951bbb28eae1?publicId=3fdf3290-1814-11f0-86ac-951bbb28eae1"
+          allowfullscreen>
+  </iframe>
+</div>
+</body>
+</html>
