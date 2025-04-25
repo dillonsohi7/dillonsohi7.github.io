@@ -18,7 +18,7 @@ function login($username, $password, $tokenFile) {
     $auth = json_decode($result, true);
 
     if (isset($auth['token'])) {
-        $auth['expires'] = time() + 3300;
+        $auth['expires'] = time() + 1000;
         file_put_contents($tokenFile, json_encode($auth));
         return $auth;
     } else {
