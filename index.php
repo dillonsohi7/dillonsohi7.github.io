@@ -2,32 +2,93 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
-// Your ThingsBoard settings
-$token = 'eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkZW5uaXMud29uZzAwMkB1bWIuZWR1IiwidXNlcklkIjoiNDk2NDFhYzAtMTY3NC0xMWYwLTg2M2ItZjczMGFkZGM2OGJhIiwic2NvcGVzIjpbIlRFTkFOVF9BRE1JTiJdLCJzZXNzaW9uSWQiOiJhYmM4NGY5Yy1mNGFjLTQ3YWYtODg0YS1iNWZiNmNhMjJkYjQiLCJleHAiOjE3NDU0MDU5ODQsImlzcyI6InRoaW5nc2JvYXJkLmNsb3VkIiwiaWF0IjoxNzQ1Mzc3MTg0LCJmaXJzdE5hbWUiOiJEZW5uaXMiLCJsYXN0TmFtZSI6IldvbmciLCJlbmFibGVkIjp0cnVlLCJpc1B1YmxpYyI6ZmFsc2UsImlzQmlsbGluZ1NlcnZpY2UiOmZhbHNlLCJwcml2YWN5UG9saWN5QWNjZXB0ZWQiOnRydWUsInRlcm1zT2ZVc2VBY2NlcHRlZCI6dHJ1ZSwidGVuYW50SWQiOiIxMDVhMjBiMC0xNjY3LTExZjAtODYzYi1mNzMwYWRkYzY4YmEiLCJjdXN0b21lcklkIjoiMTM4MTQwMDAtMWRkMi0xMWIyLTgwODAtODA4MDgwODA4MDgwIn0.gF7i_lZ_Njm9u9fgzPAymzzdXtriV94ZaEOmLRcFTLKA0udPkXjWS9rQcWw_e0yIrRP9h89wxsp3TSJcXbQpbQ';
+// Config
+$username = 'your_email@example.com';
+$password = 'your_password';
 $deviceId = '8b534c60-1667-11f0-8f83-43727cd6bc90';
 $keys = 'TempF,Humidity';
 
+$tokenFile = __DIR__ . '/auth.json';
+
+// Function: Login to ThingsBoard
+function login($username, $password, $tokenFile) {
+    $data = json_encode([
+        'username' => $username,
+        'password' => $password
+    ]);
+
+    $opts = [
+        'http' => [
+            'method'  => 'POST',
+            'header'  => "Content-Type: application/json\r\n",
+            'content' => $data
+        ]
+    ];
+    $context  = stream_context_create($opts);
+    $result = file_get_contents('https://thingsboard.cloud/api/auth/login', false, $context);
+    $auth = json_decode($result, true);
+
+    if (isset($auth['token'])) {
+        $auth['expires'] = time() + 3300; // renew ~55min
+        file_put_contents($tokenFile, json_encode($auth));
+        return $auth;
+    } else {
+        http_response_code(500);
+        echo json_encode(["error" => "Login failed"]);
+        exit;
+    }
+}
+
+// Function: Refresh token if needed
+function getToken($username, $password, $tokenFile) {
+    if (!file_exists($tokenFile)) return login($username, $password, $tokenFile);
+
+    $auth = json_decode(file_get_contents($tokenFile), true);
+
+    if (time() < $auth['expires']) {
+        return $auth;
+    }
+
+    // Refresh using refreshToken
+    $opts = [
+        'http' => [
+            'method'  => 'POST',
+            'header'  => "Content-Type: application/json\r\nAuthorization: Bearer {$auth['refreshToken']}\r\n"
+        ]
+    ];
+    $context  = stream_context_create($opts);
+    $result = file_get_contents('https://thingsboard.cloud/api/auth/token', false, $context);
+    $new = json_decode($result, true);
+
+    if (isset($new['token'])) {
+        $auth['token'] = $new['token'];
+        $auth['expires'] = time() + 3300;
+        file_put_contents($tokenFile, json_encode($auth));
+        return $auth;
+    } else {
+        // Fallback to login
+        return login($username, $password, $tokenFile);
+    }
+}
+
+// Get token (login or refresh)
+$auth = getToken($username, $password, $tokenFile);
+
+// Fetch weather data from ThingsBoard
 $url = "https://thingsboard.cloud/api/plugins/telemetry/DEVICE/$deviceId/values/timeseries?keys=$keys";
-
 $headers = [
-    "X-Authorization: Bearer $token"
+    "http" => [
+        "method" => "GET",
+        "header" => "X-Authorization: Bearer {$auth['token']}\r\n"
+    ]
 ];
+$context = stream_context_create($headers);
+$response = file_get_contents($url, false, $context);
 
-// Send request to ThingsBoard
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_FAILONERROR, true);
-
-$response = curl_exec($ch);
-
-if (curl_errno($ch)) {
+if ($response === FALSE) {
     http_response_code(500);
-    echo json_encode(["error" => curl_error($ch)]);
+    echo json_encode(["error" => "Failed to retrieve data"]);
 } else {
     echo $response;
 }
-
-curl_close($ch);
 ?>
