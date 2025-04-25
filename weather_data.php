@@ -3,9 +3,9 @@ header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
 $username = 'dennis.wong002@umb.edu';
-$password = '123456';
+$password = 123456;
 $deviceId = '8b534c60-1667-11f0-8f83-43727cd6bc90';
-$keys = 'TempF,Humidity';
+$keys = 'TempC, TempF,Humidity';
 
 $tokenFile = __DIR__ . '/auth.json';
 

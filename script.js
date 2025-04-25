@@ -15,10 +15,12 @@ async function refreshData() {
         const data = await response.json();
 
         const tempF = parseFloat(data.TempF[0].value).toFixed(1);
+        const tempC = parseFloat(data.TempC[0].value).toFixed(1);
         const humidity = parseFloat(data.Humidity[0].value).toFixed(0);
         const timestamp = new Date(parseInt(data.TempF[0].ts)).toLocaleTimeString();
 
         document.getElementById("tempF").textContent = tempF;
+        document.getElementById("tempC").textContent = tempC;
         document.getElementById("humidity").textContent = humidity;
         document.getElementById("timestamp").textContent = timestamp;
     } catch (err) {
